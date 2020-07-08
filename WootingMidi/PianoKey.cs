@@ -73,7 +73,7 @@ namespace WootingMidi
         public uint Channel { get; set; }
 
         public double Threshold { get; set; } = 0.1;
-        public double Velocity { get; private set; } = 0;
+        public double Velocity { get; private set; } = 0.0;
         public double Pressure { get; set; }
 
         public bool NoteOn { get; private set; }
