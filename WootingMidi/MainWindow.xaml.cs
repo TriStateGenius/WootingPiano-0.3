@@ -249,6 +249,8 @@ namespace WootingMidi
             }
         }
 
+
+        private bool shiftPressed = false;
         public MainWindow()
         {
             InitializeComponent();
@@ -269,8 +271,8 @@ namespace WootingMidi
             SendCc = _settings.SendCc;
 
             UpdateMidi();
-            WootingAnalogResult res;
-            if ((res = WootingAnalogSDK.Initialise()) != WootingAnalogResult.Ok && res != WootingAnalogResult.NoDevices)
+            (int noDevices, WootingAnalogResult res) = WootingAnalogSDK.Initialise();
+            if (res != WootingAnalogResult.Ok)
             {
                 System.Windows.MessageBox.Show("Could not initialize sdk, Error: " + res.ToString());
                 Environment.Exit(0);
@@ -289,7 +291,7 @@ namespace WootingMidi
                         //if (buffer.Count == 0) continue;
                         Dispatcher.BeginInvoke(new Action(() =>
                         {
-
+                            bool tshiftPressed = false;
                             foreach (var cc in CcPresses.Values)
                             {
                                 cc.Press = 0.0;
@@ -306,7 +308,12 @@ namespace WootingMidi
                                 foreach ((short key, float value) in buffer)
                                 {
                                     Keys vKey = (Keys)key;
-                                    if (CcPresses.ContainsKey(key))
+
+                                    if (vKey == Keys.LShiftKey || vKey == Keys.RShiftKey)
+                                    {
+                                        tshiftPressed = true;
+                                    }
+                                    else if (CcPresses.ContainsKey(key))
                                     {
                                         CcPresses[key].KeyCode = vKey.ToString();
                                         CcPresses[key].Press = value * 100.0;
@@ -350,6 +357,8 @@ namespace WootingMidi
                             {
                                 HidStatus.Fill = new SolidColorBrush(Color.FromRgb(255, 0, 0));
                             }
+
+                            shiftPressed = tshiftPressed;
                         }));
                         if (result != WootingAnalogResult.Ok)
                             Thread.Sleep(500);
@@ -388,11 +397,13 @@ namespace WootingMidi
         {
             if (_midiDevice == null) return;
 
-            var looffs = 12 + LowOctaveNum * 12;
-            var hioffs = 12 + HiOctaveNum * 12;
-            var hioffs1 = 12 + HiOctaveNum * 12;
-            var hioffs2 = 12 + HiOctaveNum * 12;
-            var extrakeys = 12 + Extra * 12;
+            var extra = shiftPressed ? 1 : 0;
+
+            var looffs = 12 + (LowOctaveNum + extra) * 12;
+            var hioffs = 12 + (HiOctaveNum + extra) * 12;
+            var hioffs1 = 12 + (HiOctaveNum + extra) * 12;
+            var hioffs2 = 12 + (HiOctaveNum + extra) * 12;
+            var extrakeys = 12 + (Extra + extra) * 12;
             for (int i = 0; i < 128; i++)
             {
                 if (_notes[i] == null) _notes[i] = new NoteKey() { NoteId = (uint)i };
@@ -554,5 +565,5 @@ namespace WootingMidi
         }
 
         public virtual bool Shift { get; }
-        }
     }
+}
